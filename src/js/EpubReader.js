@@ -433,10 +433,23 @@ BookmarkData){
             updateUI(pageChangeData);
 
             spin(false);
+            var percent = ReadiumSDK.reader.gotoPercent;
+            ReadiumSDK.reader.gotoPercent = null;
+            if(percent){
+                if(percent=="10")
+                        percent = "0999";
+                percent = percent.substring(0, 1) + "." + percent.substring(1);
+                var openPage = pageChangeData.paginationInfo.openPages[0];
+                if(openPage){
+                    var pageCount = openPage.spineItemPageCount;
+                    var gotoPage = Math.floor(pageCount * parseFloat(percent));
+                    ReadiumSDK.reader.openPageIndex(gotoPage);
+                } 
+            }
 
             if (!_tocLinkActivated) return;
             _tocLinkActivated = false;
-
+            
             try
             {
                 var iframe = undefined;
@@ -803,7 +816,26 @@ BookmarkData){
     };
 
     var installReaderEventHandlers = function(){
-
+        $('.icon-goto').on('click', function(){
+            var percent = (ReadiumSDK.reader.getPaginationInfo().openPages[0].spineItemPageIndex+1)/ReadiumSDK.reader.getPaginationInfo().openPages[0].spineItemPageCount;
+            percent = Math.round(percent*1000)/1000;
+            percent = percent.toString().replace('.',"");
+            var spineIndex = ReadiumSDK.reader.getPaginationInfo().openPages[0].spineItemIndex;
+            $('#currentLoc').text("Current Location: "+spineIndex+"."+percent);
+            $('#popup').show();
+        });
+        $('.close').on('click', function(){
+            $('#popup').hide();
+        });
+        $('#btnGoto').on('click', function(){
+            var goto = $('#inputLoc').val();
+            var gotoObj = {
+                               spineItemCfi: "/6/"+((parseInt(goto.split(".")[0], 10)+1)*2),
+                               percent: goto.split(".")[1]
+                          }
+            openPageRequest_ = {spineItemCfi: gotoObj.spineItemCfi, percent: gotoObj.percent}
+            loadEbook(null, openPageRequest_);
+        });
         if (isChromeExtensionPackagedApp) {
             $('.icon-shareUrl').css("display", "none");
         } else {
@@ -1183,7 +1215,14 @@ BookmarkData){
                             elementCfi: gotoCfiComponents[1]
                         };
                     } else {
-                        gotoObj = JSON.parse(goto);
+                        if(isNaN(goto))
+                            gotoObj = JSON.parse(goto);
+                        else {
+                            gotoObj = {
+                                spineItemCfi: "/6/"+((parseInt(goto.split(".")[0], 10)+1)*2),
+                                percent: goto.split(".")[1]
+                            }
+                        }
                     }
 
                     // See ReaderView.openBook()
@@ -1206,6 +1245,9 @@ BookmarkData){
                     }
                     else if (gotoObj.contentRefUrl && gotoObj.sourceFileHref) {
                         openPageRequest_ = {contentRefUrl: gotoObj.contentRefUrl, sourceFileHref: gotoObj.sourceFileHref};
+                    }
+                    else if(gotoObj.percent){
+                        openPageRequest_ = {spineItemCfi: gotoObj.spineItemCfi, percent: gotoObj.percent}
                     }
                     else if (gotoObj.spineItemCfi) {
                         openPageRequest_ = {spineItemCfi: gotoObj.spineItemCfi, elementCfi: gotoObj.elementCfi};
