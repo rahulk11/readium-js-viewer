@@ -447,6 +447,17 @@ BookmarkData){
                 } 
             }
 
+            var selections = localStorage.getItem("selections")
+            if(selections){
+                selections = JSON.parse(selections)
+                if(selections.length > 0){
+                    selections.forEach(function (element) {
+                        let {contentCFI, idref, highlightID} = JSON.parse(element);
+                        readium.reader.plugins.highlights.addHighlight(idref, contentCFI, highlightID, "highlight", {"background":"red"})
+                    })
+                }
+            }
+
             if (!_tocLinkActivated) return;
             _tocLinkActivated = false;
             
@@ -934,7 +945,22 @@ BookmarkData){
 
         // Set handlers for click events
         $(".icon-annotations").on("click", function () {
-            readium.reader.plugins.highlights.addSelectionHighlight(Math.floor((Math.random()*1000000)), "test-highlight");
+            // readium.reader.plugins.highlights.addSelectionHighlight(Math.floor((Math.random()*1000000)), "test-highlight");
+
+            var highlightID = Math.floor((Math.random()*1000000));
+            var bookmarkObject = readium.reader.plugins.highlights.addSelectionHighlight(highlightID, "highlight", null, true);
+            console.log("Book mark data is")
+            console.log(bookmarkObject)
+            const bookmark = {contentCFI: bookmarkObject.contentCFI, idref: bookmarkObject.idref, highlightID}
+            var selections = localStorage.getItem("selections")
+            if(selections){
+                selections = JSON.parse(selections)
+                selections.push(JSON.stringify(bookmark))
+            }else{
+                selections = []
+                selections.push(JSON.stringify(bookmark))
+            }
+            localStorage.setItem("selections", JSON.stringify(selections))
         });
 
         var isWithinForbiddenNavKeysArea = function()
