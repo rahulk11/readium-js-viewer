@@ -28,10 +28,10 @@ See [license.txt](./license.txt).
 
 ### Git initialisation
 
-* `git clone --recursive -b BRANCH_NAME https://github.com/readium/readium-js-viewer.git readium-js-viewer` (replace "BRANCH_NAME" with e.g. "develop")
+* `git clone --recursive -b feature/highlight https://github.com/rahulk11/readium-js-viewer.git readium-js-viewer`
 * `cd readium-js-viewer`
 * `git submodule update --init --recursive` to ensure that the readium-js-viewer chain of dependencies is initialised (readium-js, readium-shared-js)
-* `git checkout BRANCH_NAME && git submodule foreach --recursive "git checkout BRANCH_NAME"` (or simply `cd` inside each repository / submodule, and manually enter the desired branch name: `git checkout BRANCH_NAME`) Git should automatically track the corresponding branch in the 'origin' remote.
+* `git checkout feature/highlight && git submodule foreach --recursive "git checkout feature/highlight"` (or simply `cd` inside each repository / submodule, and manually enter the desired branch name: `git checkout BRANCH_NAME`) Git should automatically track the corresponding branch in the 'origin' remote.
 
 
 Advanced usage (e.g. TravisCI) - the commands below automate the remote/origin tracking process (this requires a Bash-like shell):
