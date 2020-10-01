@@ -24,7 +24,8 @@ define([
 './versioning/ReadiumVersioning',
 'readium_js/Readium',
 'readium_shared_js/helpers',
-'readium_shared_js/models/bookmark_data'],
+'readium_shared_js/models/bookmark_data',
+'./jquery-ui/jquery-ui'],
 
 function (
 globalSetup,
@@ -76,9 +77,93 @@ BookmarkData){
     // (bad naming convention, hard to find usages of "el")
     var el = document.documentElement;
 
+    var currentClickedHighlightID = null;
+    console.log("currentClickedHighlightID1: " + currentClickedHighlightID)
+
     var tooltipSelector = function() {
         return 'nav *[title], #readium-page-btns *[title]';
     };
+
+    var dialog = $( "#dialog-form" ).dialog({
+        autoOpen: false,
+        height: 250,
+        width: 350,
+        modal: true,
+        buttons: {
+          "Save": function() {
+            var note = $("#note").val();
+            var highlightID = Math.floor((Math.random()*1000000));
+            var bookmarkObject = readium.reader.plugins.highlights.addSelectionHighlight(highlightID, "highlight", null, true);
+            console.log("Book mark data is")
+            console.log(bookmarkObject)
+            const bookmark = {contentCFI: bookmarkObject.contentCFI, idref: bookmarkObject.idref, highlightID, note}
+            var selections = localStorage.getItem("selections")
+            if(selections){
+                selections = JSON.parse(selections)
+                selections.push(JSON.stringify(bookmark))
+            }else{
+                selections = []
+                selections.push(JSON.stringify(bookmark))
+            }
+            localStorage.setItem("selections", JSON.stringify(selections))
+
+            dialog.dialog( "close" );
+          },
+          Cancel: function() {
+            dialog.dialog( "close" );
+          }
+        },
+        close: function() {
+        //   form[ 0 ].reset();
+        //   allFields.removeClass( "ui-state-error" );
+        }
+      });
+
+      var dialogWithDelete = $( "#dialog-form-edit" ).dialog({
+        autoOpen: false,
+        height: 250,
+        width: 350,
+        modal: true,
+        buttons: {
+          "Save": function() {
+            var notes = $("#note_edit").val();
+            var selections = localStorage.getItem("selections");
+            var newSelections = [];
+            if(selections){
+                selections = JSON.parse(selections)
+                if(selections.length > 0){
+                    selections.forEach(function (element) {
+                        let newElement = JSON.parse(element);
+                        let {highlightID} = JSON.parse(element);
+                        if(highlightID == currentClickedHighlightID) {
+                            newElement.note = notes;
+                        }
+                        newSelections.push(JSON.stringify(newElement));
+                    })
+                }
+            }
+            localStorage.setItem("selections", JSON.stringify(newSelections));
+
+
+
+            dialogWithDelete.dialog( "close" );
+          },
+          "Delete": function() {
+            if(currentClickedHighlightID){
+                console.log("currentClickedHighlightID3: " + currentClickedHighlightID)
+                readium.reader.plugins.highlights.removeHighlight(currentClickedHighlightID);
+            }
+            dialogWithDelete.dialog( "close" );
+          },
+          Cancel: function() {
+            dialogWithDelete.dialog( "close" );
+          }
+        },
+        close: function() {
+        //   form[ 0 ].reset();
+        //   allFields.removeClass( "ui-state-error" );
+        }
+      });
    
     var ensureUrlIsRelativeToApp = function(ebookURL) {
 
@@ -947,20 +1032,16 @@ BookmarkData){
         $(".icon-annotations").on("click", function () {
             // readium.reader.plugins.highlights.addSelectionHighlight(Math.floor((Math.random()*1000000)), "test-highlight");
 
-            var highlightID = Math.floor((Math.random()*1000000));
-            var bookmarkObject = readium.reader.plugins.highlights.addSelectionHighlight(highlightID, "highlight", null, true);
-            console.log("Book mark data is")
-            console.log(bookmarkObject)
-            const bookmark = {contentCFI: bookmarkObject.contentCFI, idref: bookmarkObject.idref, highlightID}
-            var selections = localStorage.getItem("selections")
-            if(selections){
-                selections = JSON.parse(selections)
-                selections.push(JSON.stringify(bookmark))
+            dialog.dialog( "close" );
+            dialogWithDelete.dialog( "close" );
+            $("#note").val('');
+            if(document.getElementById('epubContentIframe').contentWindow.getSelection().type == "Range"){
+                dialog.dialog( "open" );
             }else{
-                selections = []
-                selections.push(JSON.stringify(bookmark))
+                alert("Please select any text to highlight.")
             }
-            localStorage.setItem("selections", JSON.stringify(selections))
+            
+
         });
 
         var isWithinForbiddenNavKeysArea = function()
@@ -1306,8 +1387,25 @@ BookmarkData){
                     });
 
                     readium.reader.plugins.highlights.on("annotationClicked", function(type, idref, cfi, id) {
-        console.debug("ANNOTATION CLICK: " + id);
-                        readium.reader.plugins.highlights.removeHighlight(id);
+                        console.debug("ANNOTATION CLICK: " + id);
+                        var notes = "";
+                        var selections = localStorage.getItem("selections")
+                        if(selections){
+                            selections = JSON.parse(selections)
+                            if(selections.length > 0){
+                                selections.forEach(function (element) {
+                                    let {highlightID, note} = JSON.parse(element);
+                                    if(highlightID == id) {
+                                        notes = note;
+                                    }
+                                })
+                            }
+                        }
+                        $("#note_edit").val(notes);
+                        dialogWithDelete.dialog( "open" );
+                        currentClickedHighlightID = id;
+                        console.log("currentClickedHighlightID2: " + currentClickedHighlightID)
+                        // readium.reader.plugins.highlights.removeHighlight(id);
                     });
                 }
     
